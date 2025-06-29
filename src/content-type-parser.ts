@@ -10,6 +10,7 @@ import {
   InvalidJSONFieldError,
   PartsLimitError,
   PrototypeViolationError,
+  RequestTooLargeError,
 } from './errors.ts'
 import JSON from 'secure-json-parse'
 
@@ -60,6 +61,8 @@ export function createContentTypeParser(
         return p
       }
     }
+
+    // busboy
 
     const headers = request.headers as BusboyHeaders
     const bus = createBusboy({
@@ -187,6 +190,19 @@ export function createContentTypeParser(
         request.multipartEntries.push(f)
       },
     )
+
+    // handling total body limit
+    let totalBodySize = 0
+    rawRequest.on('data', (chunk: Buffer) => {
+      totalBodySize += chunk.length
+
+      if (totalBodySize > maxBodyLimit) {
+        lastError = new RequestTooLargeError()
+        release()
+      }
+    })
+
+    // finally, pipe the raw request to busboy
 
     rawRequest.pipe(bus)
   }
