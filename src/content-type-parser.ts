@@ -29,11 +29,12 @@ function createBusboy(options: BusboyConfig) {
 export function createContentTypeParser(
   opts: {
     maxInMemoryFileSize: number
+    maxBodyLimit: number
     tempDir: string
   },
 ): FastifyContentTypeParser {
 
-  const {maxInMemoryFileSize, tempDir} = opts
+  const {maxInMemoryFileSize, maxBodyLimit, tempDir} = opts
 
   return function (
     request: FastifyRequest,
@@ -44,7 +45,21 @@ export function createContentTypeParser(
     // this is the only place where the flag is sets
     (<any>request)[kIsMultipart] = true
 
+    // store last error because busboy events do not wait for async handlers
     let lastError: Error | null = null
+
+    // tasks we should wait for before releasing the request and assembling the body
+    const pendingAsyncTasks: Array<Promise<unknown>> = []
+
+    function createPendingAsyncTask<
+      T extends (...args: Array<any>) => Promise<any>
+    >(task: T): (...args: Parameters<T>) => ReturnType<T> {
+      return function (...args: Parameters<T>): ReturnType<T> {
+        const p = task(...args) as ReturnType<T>
+        pendingAsyncTasks.push(p)
+        return p
+      }
+    }
 
     const headers = request.headers as BusboyHeaders
     const bus = createBusboy({
@@ -52,7 +67,13 @@ export function createContentTypeParser(
       // TODO: add support for options
     })
 
-    function release() {
+    async function release() {
+      try {
+        await Promise.all(pendingAsyncTasks)
+      } catch (err: any) {
+        lastError = err
+      }
+
       rawRequest.unpipe(bus)
 
       if (lastError) {
@@ -71,6 +92,12 @@ export function createContentTypeParser(
     bus.on('end', release)
     bus.on('close', release)
     bus.on('error', (err: Error) => {
+      lastError = err
+      release()
+    })
+
+    rawRequest.on('close', release)
+    rawRequest.on('error', (err: Error) => {
       lastError = err
       release()
     })
@@ -94,7 +121,7 @@ export function createContentTypeParser(
 
     // field and file handlers
 
-    bus.on('file', async (
+    bus.on('file', createPendingAsyncTask(async (
       fieldName: string,
       stream: BusboyFileStream,
       filename: string,
@@ -120,7 +147,7 @@ export function createContentTypeParser(
 
       request.multipartFiles.push(f)
       request.multipartEntries.push(f)
-    })
+    }))
 
     bus.on('field', (
         fieldName: string,

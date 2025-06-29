@@ -1,6 +1,7 @@
 import type {FastifyRequest} from 'fastify'
 import {kIsMultipart} from './plugin.ts'
 import type {Readable} from 'node:stream'
+import type {GetterSetter} from 'fastify/types/instance'
 
 export type JsonType = { [key: string]: JsonType } | Array<JsonType> | string | number | boolean | null
 
@@ -58,4 +59,13 @@ export function drainStream(stream: Readable) {
 
     stream.on('error', (error: Error) => reject(error))
   })
+}
+
+export function fastifyDecoratedValue<T>(value: T): GetterSetter<unknown, T> {
+  return {
+    getter: () => value,
+    setter: (newValue: T) => {
+      value = newValue
+    },
+  }
 }

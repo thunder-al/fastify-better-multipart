@@ -1,5 +1,5 @@
-import type {FastifyInstance, FastifyRequest} from 'fastify'
-import {isMultipartRequest, parseSize} from './util.ts'
+import type {FastifyInstance} from 'fastify'
+import {fastifyDecoratedValue, isMultipartRequest, parseSize} from './util.ts'
 import {createContentTypeParser} from './content-type-parser.ts'
 import Fsp from 'node:fs/promises'
 import Os from 'node:os'
@@ -26,6 +26,11 @@ export interface BetterMultipartPluginOptions {
    * If not specified, a system default temporary directory will be used.
    */
   tempDir?: string
+  /**
+   * Whether to automatically create a temporary directory if it does not exist.
+   * @default true.
+   */
+  autoCreateTempDir?: boolean
 }
 
 export async function pluginFunction(
@@ -43,9 +48,24 @@ export async function pluginFunction(
     throw new Error('maxInMemoryFileSize must be a positive number or a valid size string')
   }
 
+  const autoCreateTempDir = options?.autoCreateTempDir ?? true
   const tempDir = options?.tempDir
     ? options.tempDir
     : await Fsp.mkdtemp(Path.join(Os.tmpdir(), 'better-multipart-'))
+  try {
+    const stat = await Fsp.stat(tempDir)
+
+    if (!stat.isDirectory()) {
+      throw new Error(`Is not a directory`)
+    }
+
+  } catch (e: any) {
+    if (autoCreateTempDir) {
+      await Fsp.mkdir(tempDir, {recursive: true})
+    } else {
+      throw new Error(`Temporary directory invalid ${tempDir}: ${e.toString()}`)
+    }
+  }
 
   // Decorate the Fastify instance with a method to check if the request is multipart
   // By default its false, modifies by the content type parser
@@ -55,25 +75,29 @@ export async function pluginFunction(
     return isMultipartRequest(this)
   })
 
-  fastify.decorateRequest('multipartFiles', [])
-  fastify.decorateRequest('multipartFields', [])
-  fastify.decorateRequest('multipartEntries', []) // multipartFiles + multipartFields
+  fastify.decorateRequest('multipartFiles', fastifyDecoratedValue([]))
+  fastify.decorateRequest('multipartFields', fastifyDecoratedValue([]))
+  fastify.decorateRequest('multipartEntries', fastifyDecoratedValue([])) // multipartFiles + multipartFields
 
   // lets name temp files with an index
   // anyway, temp dir will be unique
   let nextTempFileIndex = 0
-  fastify.decorate('getNextTempFileName', (req: FastifyRequest) => `${nextTempFileIndex++}`)
+  fastify.decorate(
+    'getNextMultipartTempFileName',
+    () => `${nextTempFileIndex++}`,
+  )
 
   fastify.addContentTypeParser(
     'multipart/form-data',
     {bodyLimit: maxBodyLimit},
     createContentTypeParser({
       maxInMemoryFileSize,
+      maxBodyLimit,
       tempDir,
     }),
   )
 
-  fastify.addHook('onRequest', async (req, repl) => {
+  fastify.addHook('onResponse', async (req, repl) => {
     if (!req.isMultipart()) {
       return
     }

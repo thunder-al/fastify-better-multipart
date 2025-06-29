@@ -1,11 +1,11 @@
 import {fastifyPlugin} from 'fastify-plugin'
-import {pluginFunction} from './plugin.ts'
+import {type BetterMultipartPluginOptions, pluginFunction} from './plugin.ts'
 import {MultipartField, MultipartFile} from './entry.ts'
 
 export {kIsMultipart, type BetterMultipartPluginOptions} from './plugin.ts'
 export {MultipartFile, MultipartField} from './entry.ts'
 
-export const betterMultipartPlugin = fastifyPlugin(
+export const betterMultipartPlugin = fastifyPlugin<BetterMultipartPluginOptions>(
   pluginFunction,
   {
     name: '@thunderal/fastify-better-multipart',
