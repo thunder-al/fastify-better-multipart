@@ -1,0 +1,48 @@
+{
+  "name": "fastify-better-multipart",
+  "private": true,
+  "version": "0.0.1",
+  "license": "MIT",
+  "type": "module",
+  "author": "ThunderAl <community@thunderal.net>",
+  "keywords": [
+    "fastify",
+    "multipart",
+    "form"
+  ],
+  "packageManager": "pnpm@10.11.0",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --typecheck.enabled",
+    "test:watch": "vitest watch --typecheck.enabled",
+    "watch": "vite build -w -m development",
+    "dev": "vite build -m development",
+    "build": "vite build -m production",
+    "prepublishOnly": "npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "fastify": "^5.0.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.0",
+    "vite-plugin-checker": "~0.9.3",
+    "vite-plugin-dts": "~4.5.4",
+    "vitest": "~3.2.4"
+  },
+  "dependencies": {
+    "@fastify/busboy": "^3.0.0",
+    "@fastify/error": "^4.0.0",
+    "fastify-plugin": "^5.0.0",
+    "secure-json-parse": "~4.0.0"
+  }
+}
