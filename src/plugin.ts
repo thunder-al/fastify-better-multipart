@@ -4,10 +4,26 @@ import {createContentTypeParser} from './content-type-parser.ts'
 import Fsp from 'node:fs/promises'
 import Os from 'node:os'
 import Path from 'node:path'
+import type {BusboyConfig} from '@fastify/busboy'
 
 export const kIsMultipart = Symbol('betterMultipart.isMultipart')
 
 export interface BetterMultipartPluginOptions {
+  /**
+   * The directory where temporary files will be stored.
+   * If not specified, a system default temporary directory will be used.
+   */
+  tempDir?: string
+  /**
+   * Whether to automatically create a temporary directory if it does not exist.
+   * @default true.
+   */
+  autoCreateTempDir?: boolean
+  /**
+   * Partial configuration for the underlying Busboy instance.
+   * @default empty, busboy defaults
+   */
+  busboy?: Pick<BusboyConfig, 'highWaterMark' | 'fileHwm' | 'defCharset' | 'isPartAFile' | 'preservePath'>
   /**
    * The maximum file size allowed for uploads.
    * Can be a number (in bytes) or a string (e.g., "10MB", "1GB").
@@ -22,15 +38,9 @@ export interface BetterMultipartPluginOptions {
    */
   maxInMemoryFileSize?: number | string
   /**
-   * The directory where temporary files will be stored.
-   * If not specified, a system default temporary directory will be used.
+   * Busboy limits configuration.
    */
-  tempDir?: string
-  /**
-   * Whether to automatically create a temporary directory if it does not exist.
-   * @default true.
-   */
-  autoCreateTempDir?: boolean
+  busboyLimits?: BusboyConfig['limits']
 }
 
 export async function pluginFunction(
@@ -94,6 +104,8 @@ export async function pluginFunction(
       maxInMemoryFileSize,
       maxBodyLimit,
       tempDir,
+      busboyConfig: options?.busboy,
+      busboyLimits: options?.busboyLimits,
     }),
   )
 

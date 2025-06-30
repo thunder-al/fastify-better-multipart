@@ -32,10 +32,17 @@ export function createContentTypeParser(
     maxInMemoryFileSize: number
     maxBodyLimit: number
     tempDir: string
+    busboyConfig?: Pick<BusboyConfig, 'highWaterMark' | 'fileHwm' | 'defCharset' | 'isPartAFile' | 'preservePath'>
+    busboyLimits?: BusboyConfig['limits']
   },
 ): FastifyContentTypeParser {
 
-  const {maxInMemoryFileSize, maxBodyLimit, tempDir} = opts
+  const {maxInMemoryFileSize, maxBodyLimit, tempDir, busboyConfig, busboyLimits} = opts
+
+  const baseBusboyConfig: Omit<BusboyConfig, 'headers'> = {
+    ...busboyConfig,
+    limits: busboyLimits,
+  }
 
   return function (
     request: FastifyRequest,
@@ -66,8 +73,8 @@ export function createContentTypeParser(
 
     const headers = request.headers as BusboyHeaders
     const bus = createBusboy({
+      ...baseBusboyConfig,
       headers: headers,
-      // TODO: add support for options
     })
 
     async function release() {
