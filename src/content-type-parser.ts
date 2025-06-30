@@ -13,6 +13,7 @@ import {
   RequestTooLargeError,
 } from './errors.ts'
 import JSON from 'secure-json-parse'
+import {parseSize} from './util.ts'
 
 function createBusboy(options: BusboyConfig) {
   // Copied from @fastify/multipart
@@ -52,6 +53,18 @@ export function createContentTypeParser(
     // set multipart flag for next handlers
     // this is the only place where the flag is sets
     (<any>request)[kIsMultipart] = true
+
+    // user defined properties
+    const routeConfig = request.routeOptions.config
+
+    const localMaxBodyLimit = routeConfig?.maxMultipartBodyLimit
+      ? parseSize(routeConfig?.maxMultipartBodyLimit)
+      : maxBodyLimit
+    if (localMaxBodyLimit <= 0) {
+      return done(new Error('maxMultipartBodyLimit must be a positive number or a valid size string'))
+    }
+
+
 
     // store last error because busboy events do not wait for async handlers
     let lastError: Error | null = null
@@ -203,7 +216,7 @@ export function createContentTypeParser(
     rawRequest.on('data', (chunk: Buffer) => {
       totalBodySize += chunk.length
 
-      if (totalBodySize > maxBodyLimit) {
+      if (totalBodySize > localMaxBodyLimit) {
         lastError = new RequestTooLargeError()
         release()
       }

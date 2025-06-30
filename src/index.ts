@@ -47,4 +47,11 @@ declare module 'fastify' {
      */
     getNextMultipartTempFileName: (request: FastifyRequest) => string
   }
+
+  interface FastifyContextConfig {
+    /**
+     * Per-route maximum body size limit.
+     */
+    maxMultipartBodyLimit?: string | number
+  }
 }
