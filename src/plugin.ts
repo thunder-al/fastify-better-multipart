@@ -56,6 +56,7 @@ export async function pluginFunction(
     const stat = await Fsp.stat(tempDir)
 
     if (!stat.isDirectory()) {
+      // noinspection ExceptionCaughtLocallyJS
       throw new Error(`Is not a directory`)
     }
 
@@ -89,7 +90,6 @@ export async function pluginFunction(
 
   fastify.addContentTypeParser(
     'multipart/form-data',
-    {bodyLimit: maxBodyLimit},
     createContentTypeParser({
       maxInMemoryFileSize,
       maxBodyLimit,
@@ -97,7 +97,7 @@ export async function pluginFunction(
     }),
   )
 
-  fastify.addHook('onResponse', async (req, repl) => {
+  fastify.addHook('onResponse', async (req, _repl) => {
     if (!req.isMultipart()) {
       return
     }
