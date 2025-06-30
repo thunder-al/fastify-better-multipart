@@ -1,10 +1,12 @@
 {
   "name": "@thunderal/fastify-better-multipart",
-  "private": true,
   "version": "0.0.1",
   "license": "MIT",
   "type": "module",
   "author": "ThunderAl <community@thunderal.net>",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/thunder-al/fastify-better-multipart"
