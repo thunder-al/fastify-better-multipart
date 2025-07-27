@@ -2,6 +2,8 @@
 
 A multipart form data body parser plugin for Fastify that just works.
 
+![](./logo.svg)
+
 Works similar to [`@fastify/multipart`](https://github.com/fastify/fastify-multipart) and uses the same underlying
 parsing library [`@fastify/busboy`](https://github.com/fastify/busboy) to parse multipart form data,
 but provides a more intuitive API and predictable behavior.
